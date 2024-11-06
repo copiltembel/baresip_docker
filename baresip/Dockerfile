@@ -1,11 +1,13 @@
 ARG IMAGE=ghcr.io/baresip/docker/libre:latest
 FROM ${IMAGE}
-ARG VERSION
+ARG VERSION=v3.16.0
+ARG REPO=https://github.com/baresip/baresip.git
+ARG BUILD_VARIANT=Release
 RUN install_packages clang-15 libopus-dev libasound2-dev libmosquitto-dev libspandsp-dev libpulse-dev ffmpeg
 WORKDIR /root/
-RUN git clone -b ${VERSION} --depth=1 https://github.com/baresip/baresip.git && \
+RUN git clone -b ${VERSION} --depth=1 ${REPO} && \
     cd baresip && \
-    cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-g" -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_COMPILER=clang-15 \
+    cmake -B build -DCMAKE_BUILD_TYPE=${BUILD_VARIANT} -DCMAKE_C_FLAGS="-g" -DCMAKE_CXX_FLAGS="-g" -DCMAKE_C_COMPILER=clang-15 \
         -DCMAKE_CXX_COMPILER=clang++-15 -DCMAKE_INSTALL_PREFIX=/usr && \
     cmake --build build -j && \
     cmake --install build --prefix dist && cp -a dist/* /usr/
@@ -23,7 +25,7 @@ FROM bitnami/minideb:bookworm
 RUN install_packages libopus0 ca-certificates openssl libasound2 libmosquitto1 libspandsp2 libpulse0 pulseaudio
 COPY --from=0 /root/dist/usr/ /usr/
 RUN mkdir /usr/baresip_modules/
-RUN find /usr/lib/*/baresip/modules -name '*.so' -exec mv {} /usr/baresip_modules/ \;
+RUN find /usr/lib/*/baresip/modules -name '*.so' -exec cp {} /usr/baresip_modules/ \;
 WORKDIR /root
 USER root
 ENV USER=root
